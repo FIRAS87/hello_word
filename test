@@ -1,54 +1,178 @@
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: gitlab-runner
-  namespace: libdev-05075-metier-development
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: gitlab-runner
-  template:
-    metadata:
-      labels:
-        app: gitlab-runner
-    spec:
-      securityContext:
-        fsGroup: 1000
-      containers:
-        - name: gitlab-runner
-          image: docker-remote.registry.saas.cagip.group.gca/gitlab/gitlab-runner:alpine-v17.6.0
-          securityContext:
-            runAsUser: 1000
-            runAsGroup: 1000
-            allowPrivilegeEscalation: false
-            capabilities:
-              drop: ["ALL"]
-            seccompProfile:
-              type: RuntimeDefault
-          resources:
-            requests:
-              cpu: "500m"
-              memory: "512Mi"
-            limits:
-              cpu: "500m"
-              memory: "512Mi"
-          volumeMounts:
-            - name: config-volume
-              mountPath: /etc/gitlab-runner
-            - name: cert-volume
-              mountPath: /etc/ssl/certs/server.crt
-              subPath: server.crt
-          env:
-            - name: RUNNER_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: gitlab-runner-secret
-                  key: runner-registration-token
-      volumes:
-        - name: config-volume
-          configMap:
-            name: gitlab-runner-config
-        - name: cert-volume
-          configMap:
-            name: server-cert
+Créer manuellement un identifiant système unique
+Le message indique :
+
+graphql
+Copier le code
+Couldn't save system ID on state file.
+Exécutez la commande suggérée pour générer un fichier contenant un ID unique :
+
+bash
+Copier le code
+echo "r_LNVQiWni3wH" > ~/.gitlab-runner/.runner_system_id
+Ensuite, assurez-vous que le fichier est lisible par le processus gitlab-runner.
+
+2. Vérifier le fichier config.toml
+L'erreur montre que le fichier config.toml est manquant. Ce fichier est nécessaire pour configurer le runner.
+
+Créez ou vérifiez le fichier de configuration :
+
+bash
+Copier le code
+sudo nano ~/.gitlab-runner/config.toml
+Exemple de contenu minimal :
+
+toml
+Copier le code
+[[runners]]
+  name = "My Runner"
+  url = "https://gitlab.example.com/"
+  token = "YOUR_TOKEN"
+  executor = "docker"
+  [runners.docker]
+    image = "docker:stable"
+    privileged = true
+Remplacez :
+
+https://gitlab.example.com/ par l'URL de votre serveur GitLab.
+YOUR_TOKEN par le jeton généré sur votre instance GitLab.
+Redémarrez le service après modification :
+
+bash
+Copier le code
+gitlab-runner restart
+3. Vérifier les permissions
+Assurez-vous que les fichiers nécessaires ont les bonnes permissions :
+
+bash
+Copier le code
+chmod 600 ~/.gitlab-runner/config.toml
+chmod 600 ~/.gitlab-runner/.runner_system_id
+Et que le processus gitlab-runner peut y accéder.
+
+4. Lancer le runner en mode debug
+Si le problème persiste, exécutez le runner en mode debug pour plus de détails :
+
+bash
+Copier le code
+gitlab-runner --debug run
+Cela fournira des informations supplémentaires pour diagnostiquer la configuration.
+
+5. Réenregistrer le runner (optionnel)
+Si les erreurs continuent, réenregistrez le runner avec votre serveur GitLab :
+
+bash
+Copier le code
+gitlab-runner register
+Suivez les instructions pour fournir :
+
+L'URL de votre instance GitLab.
+Le jeton du runner.
+Le type d'exécuteur (ex. docker).
+Ces étapes devraient résoudre vos problèmes. Si le problème persiste, faites-le-moi savoir pour approfondir.
+
+
+
+
+
+
+Vous avez dit :
+Runner c’est pod
+ChatGPT a dit :
+ChatGPT
+Merci pour la précision. Si votre GitLab Runner est déployé comme pod dans Kubernetes, voici les étapes spécifiques pour résoudre le problème lié au pod :
+
+1. Vérifier le déploiement du pod
+Vérifiez l'état du pod avec la commande suivante :
+bash
+Copier le code
+kubectl get pods -n <namespace>
+Assurez-vous que le pod est en état Running. Si le pod redémarre constamment, inspectez les logs pour comprendre pourquoi :
+bash
+Copier le code
+kubectl logs <pod-name> -n <namespace>
+2. Configurer correctement config.toml dans Kubernetes
+Dans Kubernetes, le fichier config.toml pour le runner doit être monté dans le pod sous forme de ConfigMap. Voici comment configurer cela :
+
+Créer une ConfigMap pour config.toml : Si le fichier config.toml n'existe pas, créez-le en local avec le contenu minimal suivant :
+
+toml
+Copier le code
+concurrent = 1
+check_interval = 0
+
+[[runners]]
+  name = "Kubernetes Runner"
+  url = "https://gitlab.example.com"
+  token = "YOUR_RUNNER_TOKEN"
+  executor = "kubernetes"
+  [runners.kubernetes]
+    namespace = "runner-namespace"
+    privileged = true
+    image = "ubuntu:latest"
+Remplacez :
+
+https://gitlab.example.com par l'URL de votre GitLab.
+YOUR_RUNNER_TOKEN par le jeton du runner.
+runner-namespace par le namespace où le runner est déployé.
+Ensuite, créez la ConfigMap :
+
+bash
+Copier le code
+kubectl create configmap gitlab-runner-config --from-file=config.toml -n <namespace>
+Monter la ConfigMap dans le pod : Modifiez votre Deployment ou StatefulSet pour inclure la ConfigMap :
+
+yaml
+Copier le code
+volumeMounts:
+- name: config-volume
+  mountPath: /etc/gitlab-runner
+volumes:
+- name: config-volume
+  configMap:
+    name: gitlab-runner-config
+3. Vérifier les permissions dans le pod
+Si le pod n'arrive pas à lire ou écrire dans certains fichiers (comme .runner_system_id), vérifiez les permissions sur les volumes montés.
+
+Accéder au pod :
+
+bash
+Copier le code
+kubectl exec -it <pod-name> -n <namespace> -- /bin/bash
+Vérifier les fichiers :
+
+Assurez-vous que le fichier /etc/gitlab-runner/config.toml existe.
+Créez le fichier .runner_system_id manuellement si nécessaire :
+bash
+Copier le code
+echo "r_LNVQiWni3wH" > /etc/gitlab-runner/.runner_system_id
+chmod 600 /etc/gitlab-runner/.runner_system_id
+4. Inspecter les logs
+Si les problèmes persistent, inspectez les logs en détail :
+
+bash
+Copier le code
+kubectl logs <pod-name> -n <namespace>
+Si vous voyez encore des erreurs liées au fichier config.toml ou à .runner_system_id, cela signifie que la configuration ou le montage du volume n'est pas correct.
+
+5. Réenregistrer le runner
+Vous pouvez réenregistrer le runner directement dans le pod si nécessaire :
+
+Connectez-vous au pod :
+
+bash
+Copier le code
+kubectl exec -it <pod-name> -n <namespace> -- /bin/bash
+Lancez la commande d'enregistrement :
+
+bash
+Copier le code
+gitlab-runner register
+Fournissez les informations nécessaires (URL GitLab, token, etc.).
+
+Ces étapes devraient résoudre les problèmes liés au pod GitLab Runner. Si vous avez encore des erreurs, partagez les logs pour un diagnostic plus approfondi.
+
+
+
+
+
+
