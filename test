@@ -13,16 +13,17 @@ spec:
       labels:
         app: gitlab-runner
     spec:
-      imagePullSecrets:
-        - name: project-registries
+      securityContext:
+        fsGroup: 1000
       containers:
         - name: gitlab-runner
           image: docker-remote.registry.saas.cagip.group.gca/gitlab/gitlab-runner:alpine-v17.6.0
           securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
             allowPrivilegeEscalation: false
             capabilities:
               drop: ["ALL"]
-            runAsNonRoot: true
             seccompProfile:
               type: RuntimeDefault
           resources:
@@ -30,8 +31,8 @@ spec:
               cpu: "500m"
               memory: "512Mi"
             limits:
-              cpu: "1"
-              memory: "1Gi"
+              cpu: "500m"
+              memory: "512Mi"
           volumeMounts:
             - name: config-volume
               mountPath: /etc/gitlab-runner
