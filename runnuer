@@ -1,19 +1,102 @@
-image docker:
-docker-remote.registry.saas.cagip.group.gca/gitlab/gitlab-runner:alpine-v17.6.0
-
-namespace: libdev-05075-metier-development
- config toml
-
-config.toml: |
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gitlab-runner-config
+  namespace: libdev-05075-metier-development
+data:
+  config.toml: |
     [[runners]]
       name = "small-runner"
-      url = "https://scm.saas.cagip.group.gca/lcl/stt
+      url = "https://scm.saas.cagip.group.gca/lcl/stt"
       tls_ca_file = "/etc/ssl/certs/server.crt"
-      token = ""  #get value from secere
       executor = "kubernetes"
       [runners.kubernetes]
         namespace = "libdev-05075-metier-development"
         [runners.kubernetes.resources]
           requests.cpu = "500m"
           requests.memory = "512Mi"
+kubectl create secret generic gitlab-runner-secret \
+  --from-literal=runner-registration-token=YOUR_RUNNER_TOKEN \
+  -n libdev-05075-metier-development
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gitlab-runner
+  namespace: libdev-05075-metier-development
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gitlab-runner
+  template:
+    metadata:
+      labels:
+        app: gitlab-runner
+    spec:
+      serviceAccountName: gitlab-runner
+      containers:
+      - name: gitlab-runner
+        image: docker-remote.registry.saas.cagip.group.gca/gitlab/gitlab-runner:alpine-v17.6.0
+        env:
+        - name: CI_SERVER_URL
+          value: "https://scm.saas.cagip.group.gca"
+        - name: REGISTRATION_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: gitlab-runner-secret
+              key: runner-registration-token
+        - name: RUNNER_EXECUTOR
+          value: "kubernetes"
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/gitlab-runner
+        - name: cert-volume
+          mountPath: /etc/ssl/certs
+      volumes:
+      - name: config-volume
+        configMap:
+          name: gitlab-runner-config
+      - name: cert-volume
+        secret:
+          secretName: gitlab-runner-cert
+kubectl create secret generic gitlab-runner-cert \
+  --from-file=server.crt=server.crt \
+  -n libdev-05075-metier-development
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: gitlab-runner
+  namespace: libdev-05075-metier-development
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: libdev-05075-metier-development
+  name: gitlab-runner
+rules:
+- apiGroups: [""]
+  resources: ["pods", "pods/exec", "pods/log", "services"]
+  verbs: ["get", "list", "watch", "create", "delete", "patch", "update"]
+- apiGroups: [""]
+  resources: ["secrets", "configmaps"]
+  verbs: ["get", "create"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  namespace: libdev-05075-metier-development
+  name: gitlab-runner
+subjects:
+- kind: ServiceAccount
+  name: gitlab-runner
+  namespace: libdev-05075-metier-development
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: gitlab-runner
+
+
+
+
 
