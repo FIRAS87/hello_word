@@ -1,178 +1,42 @@
-Créer manuellement un identifiant système unique
-Le message indique :
-
-graphql
-Copier le code
-Couldn't save system ID on state file.
-Exécutez la commande suggérée pour générer un fichier contenant un ID unique :
-
-bash
-Copier le code
-echo "r_LNVQiWni3wH" > ~/.gitlab-runner/.runner_system_id
-Ensuite, assurez-vous que le fichier est lisible par le processus gitlab-runner.
-
-2. Vérifier le fichier config.toml
-L'erreur montre que le fichier config.toml est manquant. Ce fichier est nécessaire pour configurer le runner.
-
-Créez ou vérifiez le fichier de configuration :
-
-bash
-Copier le code
-sudo nano ~/.gitlab-runner/config.toml
-Exemple de contenu minimal :
-
-toml
-Copier le code
-[[runners]]
-  name = "My Runner"
-  url = "https://gitlab.example.com/"
-  token = "YOUR_TOKEN"
-  executor = "docker"
-  [runners.docker]
-    image = "docker:stable"
-    privileged = true
-Remplacez :
-
-https://gitlab.example.com/ par l'URL de votre serveur GitLab.
-YOUR_TOKEN par le jeton généré sur votre instance GitLab.
-Redémarrez le service après modification :
-
-bash
-Copier le code
-gitlab-runner restart
-3. Vérifier les permissions
-Assurez-vous que les fichiers nécessaires ont les bonnes permissions :
-
-bash
-Copier le code
-chmod 600 ~/.gitlab-runner/config.toml
-chmod 600 ~/.gitlab-runner/.runner_system_id
-Et que le processus gitlab-runner peut y accéder.
-
-4. Lancer le runner en mode debug
-Si le problème persiste, exécutez le runner en mode debug pour plus de détails :
-
-bash
-Copier le code
-gitlab-runner --debug run
-Cela fournira des informations supplémentaires pour diagnostiquer la configuration.
-
-5. Réenregistrer le runner (optionnel)
-Si les erreurs continuent, réenregistrez le runner avec votre serveur GitLab :
-
-bash
-Copier le code
-gitlab-runner register
-Suivez les instructions pour fournir :
-
-L'URL de votre instance GitLab.
-Le jeton du runner.
-Le type d'exécuteur (ex. docker).
-Ces étapes devraient résoudre vos problèmes. Si le problème persiste, faites-le-moi savoir pour approfondir.
-
-
-
-
-
-
-Vous avez dit :
-Runner c’est pod
-ChatGPT a dit :
-ChatGPT
-Merci pour la précision. Si votre GitLab Runner est déployé comme pod dans Kubernetes, voici les étapes spécifiques pour résoudre le problème lié au pod :
-
-1. Vérifier le déploiement du pod
-Vérifiez l'état du pod avec la commande suivante :
-bash
-Copier le code
-kubectl get pods -n <namespace>
-Assurez-vous que le pod est en état Running. Si le pod redémarre constamment, inspectez les logs pour comprendre pourquoi :
-bash
-Copier le code
-kubectl logs <pod-name> -n <namespace>
-2. Configurer correctement config.toml dans Kubernetes
-Dans Kubernetes, le fichier config.toml pour le runner doit être monté dans le pod sous forme de ConfigMap. Voici comment configurer cela :
-
-Créer une ConfigMap pour config.toml : Si le fichier config.toml n'existe pas, créez-le en local avec le contenu minimal suivant :
-
-toml
-Copier le code
-concurrent = 1
-check_interval = 0
-
-[[runners]]
-  name = "Kubernetes Runner"
-  url = "https://gitlab.example.com"
-  token = "YOUR_RUNNER_TOKEN"
-  executor = "kubernetes"
-  [runners.kubernetes]
-    namespace = "runner-namespace"
-    privileged = true
-    image = "ubuntu:latest"
-Remplacez :
-
-https://gitlab.example.com par l'URL de votre GitLab.
-YOUR_RUNNER_TOKEN par le jeton du runner.
-runner-namespace par le namespace où le runner est déployé.
-Ensuite, créez la ConfigMap :
-
-bash
-Copier le code
-kubectl create configmap gitlab-runner-config --from-file=config.toml -n <namespace>
-Monter la ConfigMap dans le pod : Modifiez votre Deployment ou StatefulSet pour inclure la ConfigMap :
-
-yaml
-Copier le code
-volumeMounts:
-- name: config-volume
-  mountPath: /etc/gitlab-runner
-volumes:
-- name: config-volume
-  configMap:
-    name: gitlab-runner-config
-3. Vérifier les permissions dans le pod
-Si le pod n'arrive pas à lire ou écrire dans certains fichiers (comme .runner_system_id), vérifiez les permissions sur les volumes montés.
-
-Accéder au pod :
-
-bash
-Copier le code
-kubectl exec -it <pod-name> -n <namespace> -- /bin/bash
-Vérifier les fichiers :
-
-Assurez-vous que le fichier /etc/gitlab-runner/config.toml existe.
-Créez le fichier .runner_system_id manuellement si nécessaire :
-bash
-Copier le code
-echo "r_LNVQiWni3wH" > /etc/gitlab-runner/.runner_system_id
-chmod 600 /etc/gitlab-runner/.runner_system_id
-4. Inspecter les logs
-Si les problèmes persistent, inspectez les logs en détail :
-
-bash
-Copier le code
-kubectl logs <pod-name> -n <namespace>
-Si vous voyez encore des erreurs liées au fichier config.toml ou à .runner_system_id, cela signifie que la configuration ou le montage du volume n'est pas correct.
-
-5. Réenregistrer le runner
-Vous pouvez réenregistrer le runner directement dans le pod si nécessaire :
-
-Connectez-vous au pod :
-
-bash
-Copier le code
-kubectl exec -it <pod-name> -n <namespace> -- /bin/bash
-Lancez la commande d'enregistrement :
-
-bash
-Copier le code
-gitlab-runner register
-Fournissez les informations nécessaires (URL GitLab, token, etc.).
-
-Ces étapes devraient résoudre les problèmes liés au pod GitLab Runner. Si vous avez encore des erreurs, partagez les logs pour un diagnostic plus approfondi.
-
-
-
-
-
-
+50 user 
+Color;Scale;Measurement;Graph Minimum;Graph Average;Graph Maximum;Graph Median;Graph Std. Deviation
+False;1;Actualisation 1 votre situation;0.229;7.298;27.075;5.954;4.977;
+True;1;Actualisation 2 comparatif patrimoine;0.132;4.73;12.828;4.193;2.619;
+True;1;Actualisation 3 Votre budget;0.372;5.622;12.643;5.142;2.663;
+True;1;Connexion SIPP;29.978;46.871;68.028;47.266;7.357;
+True;1;Developper Votre Patrimoine : Allocation;0.107;3.297;12.84;3.151;2.471;
+True;1;Developper Votre Patrimoine : Epargne a allouer a votre projet;0.077;2.332;5.488;2.435;1.023;
+True;1;Developper Votre Patrimoine : Gestion du niveau de risque financier;0.192;5.651;20.459;5.036;3.681;
+True;1;Developper Votre Patrimoine : Investissements financiers recapitulatif valider ce conseil;0.115;3.927;13.938;3.171;3.285;
+True;1;Developper Votre Patrimoine : Les orientations de votre investissement;0.277;9.766;42.074;8.748;6.651;
+True;1;Developper Votre Patrimoine : Repartition des fonds;0.709;16.818;31.567;16.991;8.135;
+True;1;Developper Votre Patrimoine : Selectionnez un Compte de depot;0.158;2.321;16.689;1.594;3.002;
+True;1;Developper Votre Patrimoine : Signer Rapport Adequation;0.048;1.782;11.659;0.389;3.27;
+True;1;Developper Votre Patrimoine : Votre situation actuelle;0.161;1.807;4.001;1.794;0.963;
+True;1;Developper Votre Patrimoine : Votre situation fiscale actuelle;0.189;7.596;39.144;7.507;6.238;
+True;1;Developper Votre Patrimoine: Preconisation financiere;0.102;3.597;7.226;3.607;1.622;
+True;1;Developper Votre Patrimoine: Rapport adequation;1.394;16.47;34.341;17.265;7.568;
+True;1;Developper Votre Patrimoine: Synthese des orientations retenues;0.273;7.174;18.032;7.236;4.163;
+True;1;Fin du parcours Patrimoine : la generation de la feuille de route;1.191;12.931;33.781;12.924;7.465;
+True;1;LCL Mon Patrimoine;0.093;2.165;25.339;1.037;4.162;
+60 user
+Color;Scale;Measurement;Minimum;Average;Maximum;Std. Deviation
+True;1;Connexion SIPP;32.163;51.394;79.675;10.115;
+True;2;LCL Mon Patrimoine;0.091;2.054;17.941;3.304;
+True;3;Actualisation 1 votre situation;0.142;7.231;53.051;6.993;
+True;4;Actualisation 2 comparatif patrimoine;0.519;5.729;28.592;4.815;
+True;5;Actualisation 3 Votre budget;0.217;6.892;40.276;6.245;
+True;6;Developper Votre Patrimoine : Votre situation actuelle;0.043;1.583;6.246;1.109;
+True;7;Developper Votre Patrimoine : Epargne a allouer a votre projet;0.031;2.376;7.636;1.484;
+True;8;Developper Votre Patrimoine : Selectionnez un Compte de depot;0.107;2.219;20.469;3.11;
+True;9;Developper Votre Patrimoine : Votre situation fiscale actuelle;0.118;7.007;27.385;5.792;
+True;10;Developper Votre Patrimoine : Les orientations de votre investissement;0.056;10.05;39.147;7.261;
+True;11;Developper Votre Patrimoine : Gestion du niveau de risque financier;0.098;5.866;39.424;5.027;
+True;12;Developper Votre Patrimoine: Preconisation financiere;0.056;3.765;24.988;3.222;
+True;13;Developper Votre Patrimoine : Allocation;0.056;3.559;28.259;3.57;
+True;14;Developper Votre Patrimoine : Investissements financiers recapitulatif valider ce conseil;0.183;3.999;19.485;3.689;
+True;15;Developper Votre Patrimoine : Repartition des fonds;0.554;17.832;31.788;8.983;
+True;16;Developper Votre Patrimoine: Synthese des orientations retenues;0.177;7.502;21.675;5.361;
+True;17;Developper Votre Patrimoine: Rapport adequation;1.816;16.458;40.838;8.974;
+True;18;Developper Votre Patrimoine : Signer Rapport Adequation;0.013;1.344;15.417;2.833;
+True;19;Fin du parcours Patrimoine : la generation de la feuille de route;1.132;14.669;37.218;8.88;
