@@ -1,0 +1,8 @@
+Observation :
+	•	Un pic de consommation CPU a été observé à 08:35 sur le pod wssscpph-uat-deployment, atteignant 0.0376.
+	•	Ce pic pourrait être lié à une opération ponctuelle ou à une montée en charge due aux tests.
+
+Recommandations :
+	•	Vérifier les logs applicatifs autour de 08:35 pour identifier le traitement en cause.
+	•	Mettre en place une alerte CPU > 0.03 pour surveiller les prochains pics.
+	•	Envisager une optimisation du traitement si ce pic devient récurrent.
