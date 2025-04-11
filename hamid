@@ -2,6 +2,46 @@ vuser_init()
 {
     web_set_sockets_option("SSL_VERSION", "AUTO");
 
+    lr_start_transaction("Acces_page_connexion");
+
+    web_url("connexion",
+        "URL=https://uat-frontend-transac.hors-prod.caas.lcl.gca/connexion",
+        "Resource=0",
+        "RecContentType=text/html",
+        "Referer=",
+        "Mode=HTML",
+        LAST);
+
+    web_url("message-banners",
+        "URL=https://uat-frontend-transac.hors-prod.caas.lcl.gca/api/cms/message-banners",
+        "Resource=0",
+        "RecContentType=application/json",
+        "Referer=https://uat-frontend-transac.hors-prod.caas.lcl.gca/connexion",
+        "Mode=HTML",
+        LAST);
+
+    web_url("keypad",
+        "URL=https://uat-frontend-transac.hors-prod.caas.lcl.gca/api/login/keypad",
+        "Resource=0",
+        "RecContentType=application/json",
+        "Referer=https://uat-frontend-transac.hors-prod.caas.lcl.gca/connexion",
+        "Mode=HTML",
+        LAST);
+
+    lr_end_transaction("Acces_page_connexion", LR_AUTO);
+
+    return 0;
+}
+
+
+
+
+
+
+vuser_init()
+{
+    web_set_sockets_option("SSL_VERSION", "AUTO");
+
     lr_start_transaction("Accès_page_connexion");
 
     web_url("connexion",
