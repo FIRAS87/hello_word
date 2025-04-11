@@ -1306,3 +1306,20 @@ vuser_init()
 
 	return 0;
 }
+==>
+vuser_init()
+ {
+     web_set_sockets_option("SSL_VERSION", "AUTO");
+ 
+     // Accès à la page de connexion
+     web_url("connexion",
+         "URL=https://uat-frontend-transac.hors-prod.caas.lcl.gca/connexion",
+         "Resource=0",
+         "RecContentType=text/html",
+         "Referer=",
+         "Snapshot=t1.inf",
+         "Mode=HTML",
+         LAST);
+ 
+     return 0;
+ }
